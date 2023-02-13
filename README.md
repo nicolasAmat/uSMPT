@@ -98,7 +98,6 @@ options:
                         enable methods among STATE-EQUATION INDUCTION BMC K-INDUCTION DUMMY
   --timeout TIMEOUT     a limit on execution time
   --show-time           show the execution time
-  --show-model          show a witness if there is one
 ```
 
 Basically, `usmpt` takes as input a Petri net in the `.net` format (see [documentation](https://projects.laas.fr/tina/manuals/formats.html#2)), and a formula defined using the following syntax:
