@@ -117,7 +117,7 @@ class Formula:
         """
         return self.F.smtlib_sat(k, assertion=assertion, negation=negation)
 
-    def parse_formula(self, formula: str) -> None:
+    def parse_formula(self, formula: str) -> Expression:
         """ Formula parser.
 
         Parameters
@@ -331,6 +331,21 @@ class SimpleExpression(ABC):
         """
         pass
 
+    @abstractmethod
+    def smtlib_sat(self, k: int = None) -> str:
+        """ Assert the SimpleExpression.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        pass
 
 class Expression(SimpleExpression):
     """ Expression.
@@ -553,6 +568,9 @@ class BooleanConstant(Expression):
 
         return smt_input
 
+    def smtlib_sat(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+        return self.smtlib(k=k, assertion=assertion, negation=negation)
+
 
 class TokenCount(SimpleExpression):
     """ Token count.
@@ -569,7 +587,7 @@ class TokenCount(SimpleExpression):
         Constant.
     """
 
-    def __init__(self, places: list[Place], multipliers: Optional[dict[Place, int]] = None, integer_constant: Optional[int] = None):
+    def __init__(self, places: list[str], multipliers: Optional[dict[str, int]] = None, integer_constant: Optional[int] = None):
         """ Initializer.
 
         Parameters

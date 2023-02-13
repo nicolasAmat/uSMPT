@@ -86,7 +86,7 @@ class Parallelizer:
         self.processes: list[Process] = []
 
         # Create queues to store the results
-        self.results: list[Queue[tuple[Verdict, Marking]]] = [Queue() for _ in methods]
+        self.results: list[Queue[Verdict]] = [Queue() for _ in methods]
 
         # Create queue to store solver pids
         self.solver_pids: Queue[int] = Queue()
@@ -121,18 +121,13 @@ class Parallelizer:
 
         prover.prove(result, concurrent_pids=concurrent_pids)
 
-    def run(self, timeout=225) -> Optional[str]:
+    def run(self, timeout=225) -> None:
         """ Run analysis in parallel.
 
         Parameters
         ----------
         timeout : int, optional
             Time limit.
-
-        Returns
-        -------
-        str, optional
-            Property id if the computation is completed, None otherwise.
         """
         # Exit if no methods to run
         if not self.methods:
@@ -151,7 +146,7 @@ class Parallelizer:
             pids.append(proc.pid)
         concurrent_pids.put(pids)
 
-        return self.handle(timeout)
+        self.handle(timeout)
 
     def handle(self, timeout: int) -> None:
         """ Handle the methods.
@@ -160,11 +155,6 @@ class Parallelizer:
         ----------
         timeout : int
             Time limit.
-
-        Returns
-        -------
-        str, optional
-            Property id if the computation is completed, None if the time limit is reached.
         """
         # Get the starting time
         start_time = time()

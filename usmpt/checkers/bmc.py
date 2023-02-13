@@ -107,7 +107,7 @@ class BMC(AbstractChecker):
         order = self.prove_helper()
 
         # Quit if the solver has aborted
-        if self.solver.aborted:
+        if order is None or self.solver.aborted:
             return
 
         # Put the result in the queue
