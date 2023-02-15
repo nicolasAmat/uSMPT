@@ -181,7 +181,7 @@ For the following question, you can define another helper predicate, $\Delta_t(\
 
 ## 2.3 - Implementing SMT-based model checking methods
 
-Our next step is to implement some model checking methods that will make use of the predicate $\mathrm{T}(\vec{x}, \vec{x}')$.
+Our next step is to implement some model checking methods that will make use of the predicate $\mathrm{T}(\vec{x}, \vec{x}')$. To define multiple vectors of variables, namely $\vec{x^0}, \vec{x^1}, \vec{x^2}$, we suggest using `@k` as a suffix for each place identifier. It is important to note that the `k` parameter is already an argument of the different `smtlib` methods.
 
 ### 2.3.1 - Bounded Model Checking (BMC)
 
