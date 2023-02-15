@@ -131,4 +131,24 @@ class BMC(AbstractChecker):
         int
             Order of the sat query.
         """
-        pass
+        # Correction <<<
+        i = 0
+
+        self.solver.write(self.ptnet.smtlib_declare_places(i))
+        self.solver.write(self.ptnet.smtlib_initial_marking(i))
+
+        self.solver.push()
+        self.solver.write(self.formula.smtlib_sat(i, assertion=True))
+
+        while not self.solver.check_sat():
+            self.solver.pop()
+
+            i += 1
+            self.solver.write(self.ptnet.smtlib_declare_places(i))
+
+            # TODO 1: write the transition relation from i-1 to i
+            # TODO 2: push
+            # TODO 3: assert the formula with k = i
+
+        return i
+        # >>> Correction

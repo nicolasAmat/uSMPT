@@ -271,10 +271,20 @@ class PetriNet:
         return int(content[:-1]) * MULTIPLIER_TO_INT[multiplier]
 
     def smtlib_declare_places(self, k: Optional[int] = None) -> str:
-        pass
+        # Correction <<<
+        smt_input = ""
+
+        for place in self.places.keys():
+            place_str = place if k is None else place + "@" + str(k)
+            smt_input += "(declare-fun {} () Bool)\n".format(place_str)
+
+        return smt_input
+        # >>> Correction
 
     def smtlib_initial_marking(self, k: Optional[int] = None) -> str:
-        pass
+        # Correction <<<
+        return self.initial_marking.smtlib(k)
+        # >>> Correction
 
     def smtlib_transition_relation(self, k: int, k_prime: int) -> str:
         pass
@@ -449,4 +459,24 @@ class Marking:
         return text
 
     def smtlib(self, k: int = None) -> str:
-        pass
+        # Correction <<<
+        smt_input = ""
+
+        # Iterate over the dictionary
+        for place, marking in self.tokens.items():
+
+            # Create variable identifiers (suffix '@k')
+            helper = place.id if k is None else place.id + "@" + str(k)
+
+            # Assert variable if marking is 1
+            if marking == 1:
+                smt_input += "(assert {})\n".format(helper)
+
+            # Assert negation of the variable if marking is 0
+            elif marking == 0:
+                smt_input += "(assert (not {}))\n".format(helper)
+            else:
+                raise ValueError
+
+        return smt_input
+        # >>> Correction
