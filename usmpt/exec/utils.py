@@ -29,7 +29,7 @@ import signal
 import logging as log
 
 STOP = signal.SIGTERM
-KILL = signal.SIGKILL
+KILL = signal.SIGTERM if os.name == 'nt' else signal.SIGKILL
 
 
 def send_signal_pids(pids: list[int], signal_to_send: signal.Signals):

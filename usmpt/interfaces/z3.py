@@ -25,14 +25,14 @@ __contact__ = "nicolas.amat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
-import logging as log
-import sys
+from logging import warning
 from multiprocessing import Queue
+from os import name
 from subprocess import PIPE, Popen
+from sys import exit
 from typing import Optional
 
 from usmpt.interfaces.solver import Solver
-from usmpt.ptio.ptnet import Marking, PetriNet, Place
 
 
 class Z3(Solver):
@@ -71,11 +71,13 @@ class Z3(Solver):
             Queue of solver pids.
         """
         # Solver
-        process = ['z3', '-in']
+        if name == 'nt':
+            process = ['z3.exe', '-in']
+        else:
+            process = ['z3', '-in']
         if timeout:
             process.append('-T:{}'.format(timeout))
-        self.solver: Popen = Popen(process, stdin=PIPE,
-                                   stdout=PIPE, start_new_session=True)
+        self.solver: Popen = Popen(' '.join(process), stdin=PIPE, stdout=PIPE, shell=True)
 
         if solver_pids is not None:
             solver_pids.put(self.solver.pid)
@@ -92,10 +94,10 @@ class Z3(Solver):
     def abort(self) -> None:
         """ Abort the solver.
         """
-        log.warning("z3 process has been aborted")
+        warning("z3 process has been aborted")
         self.solver.kill()
         self.aborted = True
-        sys.exit()
+        exit()
 
     def write(self, input: str, debug: bool = False) -> None:
         """ Write instructions to the standard input.
