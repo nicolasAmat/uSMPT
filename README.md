@@ -169,13 +169,13 @@ We start by considering that nets are safe. Hence we can work with Boolean varia
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Define the predicate $\underline{m}(\vec{x})$, given a marking $m$, which models exactly $m$ (this predicate admits only one model that is $m$).
+> **Task:** Define the predicate $\underline{m}(\vec{x})$, given a marking $m$, which models exactly $m$ (this predicate admits only one model that is $m$).
 </td></tr></table>
 
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Define the predicate $\mathrm{ENBL}_t(\vec{x})$, given a transition $t$, which models exactly the markings that enable $t$.
+> **Task:** Define the predicate $\mathrm{ENBL}_t(\vec{x})$, given a transition $t$, which models exactly the markings that enable $t$.
 </td></tr></table>
 
 For the following question, you can define another helper predicate, $\Delta_t(\vec{x}, \vec{x'})$ encoding the token displacement from $\vec{x}$ to $\vec{x}'$ by firing some transition $t$.
@@ -183,7 +183,7 @@ For the following question, you can define another helper predicate, $\Delta_t(\
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
->Define a predicate $\mathrm{T}(\vec{x}, \vec{x}')$ that describes the relation between the markings before $(\vec{x})$ and after $(\vec{x'})$ firing a transition. With this convention, formula $\mathrm{T}(\vec{x}, \vec{x}')$ holds if and only if $x \xrightarrow{t} x'$ holds for some transition $t$.
+> **Task:** Define a predicate $\mathrm{T}(\vec{x}, \vec{x}')$ that describes the relation between the markings before $(\vec{x})$ and after $(\vec{x'})$ firing a transition. With this convention, formula $\mathrm{T}(\vec{x}, \vec{x}')$ holds if and only if $x \xrightarrow{t} x'$ holds for some transition $t$.
 </td></tr></table>
 
 In this project, these predicates are generated using the SMT-LIB format, see the appendix for more details.
@@ -227,7 +227,7 @@ To run BMC you must select it using `--methods BMC`.
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Implement the methods `smtlib_set_initial_marking` and `smtlib_transition_relation`, which return an SMT-LIB encoding (`str`) of the predicates $\underline{m_0}(\vec{x^k})$ and $\mathrm{T}(\vec{x}^k, \vec{x}^{k+1})$ respectively.
+> **Task:** Implement the methods `smtlib_set_initial_marking` and `smtlib_transition_relation`, which return an SMT-LIB encoding (`str`) of the predicates $\underline{m_0}(\vec{x^k})$ and $\mathrm{T}(\vec{x}^k, \vec{x}^{k+1})$ respectively.
 
 > **Tip:** Read the methods `__str__` and `smtlib_declare_places` carefully to understand the data-structure of a Petri net. The attributes `self.places` and `self.transitions` are the sets of identifiers of the places and transitions respectively. The pre- and post-conditions are stored as two nested dictionaries (`self.pre` and `self.post`). For example, if `self.pre[t][p]` is defined, its value corresponds to the weight of the arc from $p$ to $t$, otherwise `p` is not a valid key of `self.pre[t]` and no such arc exists. Note that in Python you can use `self.pre[t].get(p, 0)` to get `self.pre[t][p]` if `p` is a valid key and `0` otherwise.
 
@@ -251,7 +251,7 @@ Note that to run Induction you must select it using `--methods INDUCTION`.
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Implement the `prove_helper(self) -> Optional[bool]` method of the `Induction` class that returns `True` if constraint (1) is *SAT* (i.e. the initial marking is a model of $F$); returns `False` if both constraints (1) and (2) are *UNSAT* (i.e. $\neg F$ is an invariant); and returns `None` otherwise.
+> **Task:** Implement the `prove_helper(self) -> Optional[bool]` method of the `Induction` class that returns `True` if constraint (1) is *SAT* (i.e. the initial marking is a model of $F$); returns `False` if both constraints (1) and (2) are *UNSAT* (i.e. $\neg F$ is an invariant); and returns `None` otherwise.
 
 > **Tip:** Read the BMC implementation in `usmpt/checkers/bmc.py` carefully.
 
@@ -280,7 +280,7 @@ Note that to run Induction you must select it using `--methods K-INDUCTION`.
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Implement the `def prove_helper(self) -> int` of the `KInduction` class, that iteratively constructs the $\psi_i$ formulas and returns $i$ if $\psi_i \land F$ is *UNSAT*.
+> **Task:** Implement the `def prove_helper(self) -> int` of the `KInduction` class, that iteratively constructs the $\psi_i$ formulas and returns $i$ if $\psi_i \land F$ is *UNSAT*.
 
 > **Testing:** `python3 -n nets/K-INDUCTION/net.net -ff nets/K-INDUCTION/not_reachable.formula --methods K-INDUCTION` must return `NOT REACHABLE`.
 </td></tr></table>
@@ -294,7 +294,7 @@ This part is left as an open problem, and do not rely on the previous encoding.
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Implement the `prove_helper(self) -> Optional[bool]` method of the `StateEquation` class, that returns `False` is the formula has been proved as non-reachable, `None` otherwise.
+> **Task:** Implement the `prove_helper(self) -> Optional[bool]` method of the `StateEquation` class, that returns `False` is the formula has been proved as non-reachable, `None` otherwise.
 
 > **Hint:** In the `PetriNet` class (`usmpt/ptio/ptnet.py`) you may need to write additional `smtlib` methods.
 
@@ -308,7 +308,7 @@ As mentioned earlier, if we know, as a pre-condition, that a net is safe, it may
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Write an alternative version of the methods `smtlib_declare_places`, `smtlib_set_initial_marking` and `smtlib_transition_relation` to support a SAT encoding for the specific case of safe nets.
+> **Task:** Write an alternative version of the methods `smtlib_declare_places`, `smtlib_set_initial_marking` and `smtlib_transition_relation` to support a SAT encoding for the specific case of safe nets.
 
 > **Hint:** Replace occurrences of `formula.smtlib` with `formula.smtlib_sat` (see the definition of `smtlib_sat` in `usmpt/ptio/formula.py` on line 103).
 
