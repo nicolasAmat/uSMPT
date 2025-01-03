@@ -38,7 +38,7 @@ A Petri net $N$ is a 4-tuple $(P, T, \mathrm{Pre}, \mathrm{Post})$ where:
 
 #### 1.2.2 - Useful Notations
 
-The *pre-set* of a transition $t \in T$ is denoted ${}^{\bullet} t = \{p \in P \mid \mathrm{Pre}(t,p) > 0 \}$. Symetrically, the *post-set* of a transition $t$ is denoted $t^{\bullet} = \{ p \in P \mid \mathrm{Post}(t,p) > 0 \}$. The mappings $\mathrm{Pre}(t,p)$ and $\mathrm{Post}(t,p)$ define the weight of arcs between $p$ and $t$. A Petri net is called *ordinary* when the (non-zero) weights on all arcs are equal to $1$.
+The *pre-set* of a transition $t \in T$ is denoted ${}^{\bullet} t = \{p \in P \mid \mathrm{Pre}(t,p) > 0 \}$. Symmetrically, the *post-set* of a transition $t$ is denoted $t^{\bullet} = \{ p \in P \mid \mathrm{Post}(t,p) > 0 \}$. The mappings $\mathrm{Pre}(t,p)$ and $\mathrm{Post}(t,p)$ define the weight of arcs between $p$ and $t$. A Petri net is called *ordinary* when the (non-zero) weights on all arcs are equal to $1$.
 
 These notations can be extended to the *pre-set* and *post-set* of a place $p$, with ${}^{\bullet} p = \{ t \in T \mid \mathrm{Post} (t,p) > 0 \}$ and $p^{\bullet} = \{ t \in T \mid \mathrm{Pre}(t,p) > 0 \}$.
 
@@ -66,7 +66,7 @@ A Petri net can be represented graphically: places are represented by circles, t
 
 ### 1.3 - Reachability Formulas
 
-We are interested in the verification of *safety properties* over the reachable markings of a marked net $(N, m_0)$, with set of places $P$. Given a formula $F$ with variables in $P$, we say that $F$ is reachable if there exists at least one reachable marking, $m \in R(N, m_0)$, such that $m \models F$. We call such marking a *witness* of $F$. Conversly, a formula $G$ is said *invariant* if it holds on all the reachable markings of $(N, m_0)$ (or, equivalently, if $\neg G$ is not reachable). Example of properties we can express in this way include: checking if some transition $t$ is enabled (commonly known as quasi-liveness); checking if there is a deadlock; checking whether some linear invariant between places is always true; etc.
+We are interested in the verification of *safety properties* over the reachable markings of a marked net $(N, m_0)$, with set of places $P$. Given a formula $F$ with variables in $P$, we say that $F$ is reachable if there exists at least one reachable marking, $m \in R(N, m_0)$, such that $m \models F$. We call such marking a *witness* of $F$. Conversely, a formula $G$ is said *invariant* if it holds on all the reachable markings of $(N, m_0)$ (or, equivalently, if $\neg G$ is not reachable). Example of properties we can express in this way include: checking if some transition $t$ is enabled (commonly known as quasi-liveness); checking if there is a deadlock; checking whether some linear invariant between places is always true; etc.
 
 # 2. Instructions
 
@@ -255,7 +255,7 @@ Note that to run Induction you must select it using `--methods INDUCTION`.
 
 > **Tip:** Read the BMC implementation in `usmpt/checkers/bmc.py` carefully.
 
-> **Testing:** `python3 -n nets/INDUCTION/net.net -ff nets/INDUCTION/not_reachable.formula --methods INDUCTION` must return `NOT REACHABLE` and `python3 -n nets/KINDUCTION/net.net -ff nets/KINDUCTION/not_reachable.formula --methods INDUCTION` must terminate without computing a verdict (`UNKNOWN`).
+> **Testing:** `python3 -n nets/INDUCTION/net.net -ff nets/INDUCTION/not_reachable.formula --methods INDUCTION` must return `NOT REACHABLE` and `python3 -n nets/K-INDUCTION/net.net -ff nets/K-INDUCTION/not_reachable.formula --methods INDUCTION` must terminate without computing a verdict (`UNKNOWN`).
 </td></tr></table>
 
 ### 2.3.3 - K-Induction
@@ -275,7 +275,7 @@ The algorithm starts by computing a formula $\psi_0(\vec{x_0}, \vec{x_1}) \trian
 
 The interconnection between `BMC` and `KInduction` is already implemented in `usmpt` through the attribute `induction_queue`. The `prove_helper` method of `BMC` must manage the result of `KInduction` if there is one.
 
-Note that to run Induction you must select it using `--methods KINDUCTION`.
+Note that to run Induction you must select it using `--methods K-INDUCTION`.
 
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
