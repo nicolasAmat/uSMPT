@@ -19,8 +19,8 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
@@ -102,9 +102,12 @@ class StateEquation(AbstractChecker):
             result.put(Verdict.NOT_REACHABLE)
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
+        if verdict is False and not concurrent_pids.empty():
             send_signal_pids(concurrent_pids.get(), STOP)
 
+    ######################
+    # TODO: Sect. 2.3.4. #
+    ######################
     def prove_helper(self) -> Optional[bool]:
         """ Prover to complete.
 
@@ -113,4 +116,5 @@ class StateEquation(AbstractChecker):
         bool, optional
             `False` if F is proved as not reachable, `None` otherwise.
         """
-        pass
+        raise NotImplementedError
+    ######################

@@ -19,8 +19,8 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
@@ -104,14 +104,14 @@ class BMC(AbstractChecker):
 
         info("[BMC] RUNNING")
 
-        order = self.prove_helper()
+        iteration = self.prove_helper()
 
         # Quit if the solver has aborted
-        if order is None or self.solver.aborted:
+        if iteration is None or self.solver.aborted:
             return
 
         # Put the result in the queue
-        if order == -1:
+        if iteration == -1:
             result.put(Verdict.NOT_REACHABLE)
         else:
             result.put(Verdict.REACHABLE)
@@ -129,6 +129,50 @@ class BMC(AbstractChecker):
         Returns
         -------
         int
-            Order of the sat query.
+            Iteration number of the sat query.
         """
-        pass
+        info("[BMC] > Initialization")
+
+        info("[BMC] > Declaration of the places from the Petri net (iteration: 0)")
+        self.solver.write(self.ptnet.smtlib_declare_places(0))
+
+        info("[BMC] > Initial marking of the Petri net")
+        self.solver.write(self.ptnet.smtlib_set_initial_marking(0))
+
+        info("[BMC] > Push")
+        self.solver.push()
+
+        info("[BMC] > Formula to check the satisfiability (iteration: 0)")
+        self.solver.write(self.formula.smtlib(0, assertion=True))
+
+        k = 0
+        k_induction_iteration = float('inf')
+
+        while not self.solver.check_sat():
+
+            # Donner ce bout de code            
+            if self.induction_queue is not None and not self.induction_queue.empty():
+                k_induction_iteration = self.induction_queue.get()
+
+            if k >= k_induction_iteration:
+                return -1
+
+            info("[BMC] > Pop")
+            self.solver.pop()
+
+            k += 1
+            info("[BMC] > k = {}".format(k))
+
+            info("[BMC] > Declaration of the places from the Petri net (iteration: {})".format(k))
+            self.solver.write(self.ptnet.smtlib_declare_places(k))
+
+            info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
+            self.solver.write(self.ptnet.smtlib_transition_relation(k - 1, k))
+
+            info("[BMC] > Push")
+            self.solver.push()
+
+            info("[BMC] > Formula to check the satisfiability (iteration: {})".format(k))
+            self.solver.write(self.formula.smtlib(k, assertion=True))
+
+        return k

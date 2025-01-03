@@ -24,7 +24,7 @@ setup(
     name="uSMPT",
     version="1.0",
     description="uSMPT - An environnement to experiment with SMT-based model checking for Petri nets",
-    author="Nicolas Amat, LAAS-CNRS",
-    author_email="nicolas.amat@laas.fr",
+    author="Nicolas Amat, ONERA/DTIS, Université de Toulouse",
+    author_email="nicolas.amat@onera.fr",
     executables=[Executable("usmpt/__main__.py", targetName="usmpt.exe")]
 )

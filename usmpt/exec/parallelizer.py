@@ -19,13 +19,13 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
-from time import time
 from multiprocessing import Process, Queue
+from time import time
 from typing import Optional
 
 from usmpt.checkers.bmc import BMC
@@ -34,7 +34,7 @@ from usmpt.checkers.kinduction import KInduction
 from usmpt.checkers.statequation import StateEquation
 from usmpt.exec.utils import KILL, send_signal_group_pid, send_signal_pids
 from usmpt.ptio.formula import Formula
-from usmpt.ptio.ptnet import Marking, PetriNet
+from usmpt.ptio.ptnet import PetriNet
 from usmpt.ptio.verdict import Verdict
 
 
@@ -143,7 +143,8 @@ class Parallelizer:
         pids = []
         for proc in self.processes:
             proc.start()
-            pids.append(proc.pid)
+            if proc.pid is not None:
+                pids.append(proc.pid)
         concurrent_pids.put(pids)
 
         self.handle(timeout)
@@ -185,7 +186,7 @@ class Parallelizer:
         """ Stop the methods.
         """
         # Kill methods
-        send_signal_pids([proc.pid for proc in self.processes], KILL)
+        send_signal_pids([proc.pid for proc in self.processes if proc.pid is not None], KILL)
 
         # Kill solvers
         while not self.solver_pids.empty():

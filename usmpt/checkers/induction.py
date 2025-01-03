@@ -19,8 +19,8 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
@@ -73,8 +73,8 @@ class Induction(AbstractChecker):
         # Kill the solver
         self.solver.kill()
 
-        # Quit if the solver has aborted or induction is None
-        if self.solver.aborted or induction is None:
+        # Quit if the solver has aborted
+        if self.solver.aborted:
             return
 
         # Put the result in the queue
@@ -82,11 +82,16 @@ class Induction(AbstractChecker):
             result.put(Verdict.REACHABLE)
         elif induction is False:
             result.put(Verdict.NOT_REACHABLE)
+        elif induction is None:
+            result.put(Verdict.UNKNOWN)
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
+        if induction is None and not concurrent_pids.empty():
             send_signal_pids(concurrent_pids.get(), STOP)
 
+    ######################
+    # TODO: Sect. 2.3.2. #
+    ######################
     def prove_helper(self) -> Optional[bool]:
         """ Prover to complete.
 
@@ -95,4 +100,5 @@ class Induction(AbstractChecker):
         bool, optional
             `True` if the formula is inductive, `None` otherwise.
         """
-        pass
+        raise NotImplementedError
+    ######################

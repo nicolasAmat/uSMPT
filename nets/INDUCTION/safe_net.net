@@ -1,0 +1,8 @@
+net safe_net
+tr t0 p0 -> p1 p3 
+tr t1 p1 -> p2 
+tr t2 p3 -> p4 p5 
+tr t3 p2 p4 p5 -> 
+tr t4 p3 p6 -> p3 
+pl p0 (1)
+pl p6 (1)

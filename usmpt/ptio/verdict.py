@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 

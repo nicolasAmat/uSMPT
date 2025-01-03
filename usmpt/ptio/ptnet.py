@@ -22,8 +22,8 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
@@ -40,20 +40,41 @@ MULTIPLIER_TO_INT = {
     'E': 1000000000000000000
 }
 
+pl_id         = str
+tr_id         = str
+arc_weight    = int
+number_tokens = int
 
 class PetriNet:
     """ Petri net.
 
     Attributes
     ----------
-    id : str
-        Identifier.
-    places : dict of str: Place
+
+    places : set of str
         Finite set of places (identified by names).
-    transitions : dict of str: Transition
+    
+    transitions : set of str
         Finite set of transitions (identified by names).
-    initial_marking : Marking
+
+    pre : dict of str: dict of str: int
+        Pre-condition function.
+    
+        self.pre[tr] is defined for all transitions t in self.transitions.
+        self.pre[tr][pl] is only defined if there is some arc from pl to tr,
+                         in which case the value is the weight.
+
+    post : dict of str: dict of str: int
+        Post-condition function.
+        
+        self.post[tr] is defined for all transitions t in self.transitions.
+        self.post[tr][pl] is only defined if there is some arc from tr to pl,
+                          in which case the value is the weight.
+    
+    initial_marking : dict of str: int
         Initial marking.
+
+        self.initial_marking[pl] is defined for all place in self.places.
     """
 
     def __init__(self, filename: str) -> None:
@@ -64,12 +85,13 @@ class PetriNet:
         filename : str
             Petri net filename.
         """
-        self.id: str = ""
-
-        self.places: dict[str, Place] = {}
-        self.transitions: dict[str, Transition] = {}
-
-        self.initial_marking: Marking = Marking()
+        self.places:          set[pl_id] = set()
+        self.transitions:     set[tr_id] = set()
+        
+        self.pre:             dict[tr_id, dict[pl_id, arc_weight]] = {}
+        self.post:            dict[tr_id, dict[pl_id, arc_weight]] = {}
+        
+        self.initial_marking: dict[pl_id, number_tokens] = {}
 
         # Parse the `.net` file
         self.parse_net(filename)
@@ -82,11 +104,94 @@ class PetriNet:
         str
             .net format.
         """
-        text = "net {}\n".format(self.id)
-        text += ''.join(map(str, self.places.values()))
-        text += ''.join(map(str, self.transitions.values()))
+        text = ""
+
+        for tr in self.transitions:
+            text += "tr {}".format(tr)
+            
+            for pl, weight in self.pre[tr].items():
+                if weight != 1:
+                    text += " {}*{}".format(weight, pl)
+                else:
+                    text += " {}".format(pl)
+
+            text += " ->"
+
+            for pl, weight in self.post[tr].items():
+                if weight != 1:
+                    text += " {}*{}".format(weight, pl)
+                else:
+                    text += " {}".format(pl)
+        
+            text += "\n"
+
+
+        for pl, marking in self.initial_marking.items():
+            text += "pl {} ({})\n".format(pl, marking)
 
         return text
+
+    def smtlib_declare_places(self, k: Optional[int] = None) -> str:
+        """ Declare variables corresponding to the number of tokens
+            contained into the different places at iteration k.
+
+        Parameters
+        ----------
+        k : int, optional
+            Iteration.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+
+        smt_input = ""
+        
+        for pl in self.places:
+            var = pl if k is None else "{}@{}".format(pl, k)
+            smt_input += "(declare-const {} Int)\n".format(var)
+            smt_input += "(assert (>= {} 0))\n".format(var)
+
+        return smt_input
+
+    ######################
+    # TODO: Sect. 2.3.1. #
+    ######################
+    def smtlib_set_initial_marking(self, k: Optional[int] = None) -> str:
+        """ Set the initial marking.
+        
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        raise NotImplementedError
+    ######################
+
+    ######################
+    # TODO: Sect. 2.3.1. #
+    ######################
+    def smtlib_transition_relation(self, k: int, k_prime: int) -> str:
+        """ Transition relation from places at iteration k to iteration k + 1.
+        
+        Parameters
+        ----------
+        k : int
+            Iteration.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        raise NotImplementedError
+    ######################
 
     def parse_net(self, filename: str) -> None:
         """ Petri net parser.
@@ -114,10 +219,6 @@ class PetriNet:
                     else:
                         element = content.pop(0)
 
-                    # Net id
-                    if element == "net":
-                        self.id = content[0]
-
                     # Transition arcs
                     if element == "tr":
                         self.parse_transition(content)
@@ -127,7 +228,7 @@ class PetriNet:
                         self.parse_place(content)
             fp.close()
         except FileNotFoundError as e:
-            exit(e)
+            exit("Error: Input file not found")
 
     def parse_transition(self, content: list[str]) -> None:
         """ Transition parser.
@@ -139,11 +240,9 @@ class PetriNet:
         """
         transition_id = content.pop(0)
 
-        if transition_id in self.transitions:
-            tr = self.transitions[transition_id]
-        else:
-            tr = Transition(transition_id, self)
-            self.transitions[transition_id] = tr
+        self.transitions.add(transition_id)
+        self.pre[transition_id] = {}
+        self.post[transition_id] = {}
 
         content = self.parse_label(content)
 
@@ -152,25 +251,22 @@ class PetriNet:
         outputs = content[arrow + 1:]
 
         for arc in inputs:
-            tr.connected_places.append(self.parse_arc(arc, tr.pre))
+            self.parse_arc(arc, transition_id, self.pre)
 
         for arc in outputs:
-            tr.connected_places.append(self.parse_arc(arc, tr.post))
+            self.parse_arc(arc, transition_id, self.post)
 
-    def parse_arc(self, content: str, arcs: dict[Place, int]) -> Place:
+    def parse_arc(self, content: str, transition_id: str, arcs: dict[tr_id, dict[pl_id, int]]) -> None:
         """ Arc parser.
 
         Parameters
         ----------
-        content : 
+        content : list of str
             Content to parse (.net format).
-        arcs : dict of Place: int
-            Current arcs.
-
-        Returns
-        -------
-        Place
-            Arc place.
+        transition : str
+            Transition that is parsed.
+        arcs : dict of str: dict of str: int
+            Pre or Post vectors (if parsing before or after ->).
         """
         content = content
 
@@ -182,14 +278,10 @@ class PetriNet:
             weight = 1
 
         if place_id not in self.places:
-            new_place = Place(place_id)
-            self.places[place_id] = new_place
-            self.initial_marking.tokens[new_place] = 0
+            self.places.add(place_id)
+            self.initial_marking[place_id] = 0
 
-        pl = self.places.get(place_id)
-        arcs[pl] = weight
-
-        return pl
+        arcs[transition_id][place_id] = arcs[transition_id].get(place_id, 0) + weight
 
     def parse_place(self, content: list[str]) -> None:
         """ Place parser.
@@ -204,19 +296,14 @@ class PetriNet:
         content = self.parse_label(content)
 
         if content:
-            initial_marking = self.parse_value(
-                content[0].replace('(', '').replace(')', ''))
+            initial_marking = self.parse_value(content[0].replace('(', '').replace(')', ''))
         else:
             initial_marking = 0
 
         if place_id not in self.places:
-            place = Place(place_id, initial_marking)
-            self.places[place_id] = place
-        else:
-            place = self.places.get(place_id)
-            place.initial_marking = initial_marking
+            self.places.add(place_id)
 
-        self.initial_marking.tokens[place] = initial_marking
+        self.initial_marking[place_id] = initial_marking
 
     def parse_label(self, content: list[str]) -> list[str]:
         """ Label parser.
@@ -269,184 +356,3 @@ class PetriNet:
             raise ValueError("Incorrect integer value")
 
         return int(content[:-1]) * MULTIPLIER_TO_INT[multiplier]
-
-    def smtlib_declare_places(self, k: Optional[int] = None) -> str:
-        pass
-
-    def smtlib_initial_marking(self, k: Optional[int] = None) -> str:
-        pass
-
-    def smtlib_transition_relation(self, k: int, k_prime: int) -> str:
-        pass
-
-
-class Place:
-    """ Place.
-
-    Attributes
-    ----------
-    id : str
-        An identifier.
-    initial_marking : Marking
-        Initial marking of the place.
-    """
-
-    def __init__(self, place_id: str, initial_marking: int = 0) -> None:
-        """ Initializer.
-
-        Parameters
-        ----------
-        place_id : str
-            An identifier.
-        initial_marking : int, optional
-            Initial marking of the place.
-        """
-        self.id: str = place_id
-        self.initial_marking: int = initial_marking
-
-    def __str__(self) -> str:
-        """ Place to .net format.
-
-        Returns
-        -------
-        str
-            .net format.
-        """
-        if self.initial_marking:
-            return "pl {} ({})\n".format(self.id, self.initial_marking)
-        else:
-            return ""
-
-    def smtlib(self, k: Optional[int] = None) -> str:
-        pass
-
-    def smtlib_declare(self, k: Optional[int] = None) -> str:
-        pass
-
-
-class Transition:
-    """ Transition.
-
-    Attributes
-    ----------
-    id : str
-        An identifier.
-    pre: dict of Place: int
-        Pre vector.
-    post: dict of Place: int
-        Post vector.
-    connected_places: list of Place
-        List of the places connected to the transition.
-    ptnet: PetriNet
-        Associated Petri net.
-    """
-
-    def __init__(self, transition_id: str, ptnet: PetriNet) -> None:
-        """ Initializer.
-
-        Parameters
-        ----------
-        transition_id : str
-            An identifier.
-        ptnet : PetriNet
-            Associated Petri net.
-        """
-        self.id: str = transition_id
-
-        self.pre: dict[Place, int] = {}
-        self.post: dict[Place, int] = {}
-
-        self.connected_places: list[Place] = []
-    
-        self.ptnet: PetriNet = ptnet
-
-    def __str__(self) -> str:
-        """ Transition to textual format.
-        
-        Returns
-        -------
-        str
-            .net format.
-        """
-        text = "tr {} ".format(self.id)
-
-        for src, weight in self.pre.items():
-            text += ' ' + self.str_arc(src, weight)
-
-        text += ' ->'
-
-        for dest, weight in self.post.items():
-            text += ' ' + self.str_arc(dest, weight)
-        
-        text += '\n'
-        return text
-
-    def str_arc(self, place: Place, weight: int) -> str:
-        """ Arc to textual format.
-
-        Parameters
-        ----------
-        place : place
-            Input place.
-        weight : int
-            Weight of the arc (negative if inhibitor).
-
-        Returns
-        -------
-        str
-            .net format.
-        """
-        text = place.id
-
-        if weight:
-            text += '*' + str(weight)
-
-        return text
-
-    def smtlib(self, k: int) -> str:
-        pass
-
-    def smtlib_declare(self) -> str:
-        pass
-
-
-class Marking:
-    """ Marking.
-
-    Attributes
-    ----------
-    tokens : dict of Place: int
-        Number of tokens associated to the places.
-    """
-
-    def __init__(self, tokens: Optional[dict[Place, int]] = None) -> None:
-        """ Initializer.
-
-        Parameters
-        ----------
-        tokens : dict of Place: int, optional
-            Number of tokens associated to the places.
-        """
-        self.tokens: dict[Place, int] = tokens if tokens is not None else {}
-
-    def __str__(self) -> str:
-        """ Marking to textual format.
-
-        Returns
-        -------
-        str
-            .net format.
-        """
-        text = ""
-
-        for place, marking in self.tokens.items():
-            if marking > 0:
-                text += " {}({})".format(str(place.id), marking)
-
-        if text == "":
-            text = " empty marking"
-
-        return text
-
-    def smtlib(self, k: int = None) -> str:
-        pass

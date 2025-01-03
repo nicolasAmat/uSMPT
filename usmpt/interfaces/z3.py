@@ -20,8 +20,8 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
@@ -58,7 +58,7 @@ class Z3(Solver):
         Debugging flag.
     """
 
-    def __init__(self, debug: bool = False, timeout: int = 0, solver_pids: Queue = None) -> None:
+    def __init__(self, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -114,7 +114,10 @@ class Z3(Solver):
 
         if input != "":
             try:
-                self.solver.stdin.write(bytes(input, 'utf-8'))
+                if self.solver.stdin is None:
+                    self.abort()
+                else:
+                    self.solver.stdin.write(bytes(input, 'utf-8'))
             except BrokenPipeError:
                 self.abort()
 
@@ -122,7 +125,10 @@ class Z3(Solver):
         """ Flush the standard input.
         """
         try:
-            self.solver.stdin.flush()
+            if self.solver.stdin is None:
+                self.abort()
+            else:
+                self.solver.stdin.flush()
         except BrokenPipeError:
             self.abort()
 
@@ -140,7 +146,10 @@ class Z3(Solver):
             Line read.
         """
         try:
-            smt_output = self.solver.stdout.readline().decode('utf-8').strip()
+            if self.solver.stdout is None:
+                self.abort()
+            else:
+                smt_output = self.solver.stdout.readline().decode('utf-8').strip()
         except BrokenPipeError:
             self.abort()
 

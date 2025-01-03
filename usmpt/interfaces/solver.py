@@ -19,15 +19,13 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
 from abc import ABC, abstractmethod
 from typing import Optional
-
-from usmpt.ptio.ptnet import Marking, PetriNet
 
 
 class Solver(ABC):
@@ -49,7 +47,7 @@ class Solver(ABC):
         pass
 
     @abstractmethod
-    def write(self, input: str, debug: Optional[bool] = None) -> None:
+    def write(self, input: str, debug: bool = False) -> None:
         """ Write instructions.
 
         Parameters
@@ -62,7 +60,7 @@ class Solver(ABC):
         pass
 
     @abstractmethod
-    def readline(self, debug: Optional[bool] = False) -> str:
+    def readline(self, debug: bool = False) -> str:
         """ Read a line from the standard output.
 
         Parameters

@@ -19,8 +19,8 @@ along with uSMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-__author__ = "Nicolas AMAT, LAAS-CNRS"
-__contact__ = "nicolas.amat@laas.fr"
+__author__ = "Nicolas AMAT, ONERA/DTIS, Université de Toulouse"
+__contact__ = "nicolas.amat@onera.fr"
 __license__ = "GPLv3"
 __version__ = "1.0"
 
@@ -29,7 +29,6 @@ from collections import deque
 from re import search, split
 from typing import Optional, Sequence
 
-from usmpt.ptio.ptnet import Place
 from usmpt.ptio.verdict import Verdict
 
 LTL_TO_BOOLEAN_OPERATORS = {
@@ -53,7 +52,7 @@ class Formula:
         Reachability formula.
     """
 
-    def __init__(self, formula: Optional[str] = None, path_formula: Optional[str] = None) -> None:
+    def __init__(self, formula: Optional[str], path_formula: Optional[str] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -63,9 +62,12 @@ class Formula:
         path_formula : str, optional
             Path to reachability formula.
         """
-        if path_formula:
-            with open(path_formula, 'r') as fp:
-                formula = fp.read().strip()
+        if formula is None:
+            if path_formula is not None:
+                with open(path_formula, 'r') as fp:
+                    formula = fp.read().strip()
+            else:
+                raise ValueError
 
         self.F: Expression = self.parse_formula(formula)
 
@@ -85,7 +87,7 @@ class Formula:
         Parameters
         ----------
         k : int, optional
-            Order.
+            Iteration number.
         assertion : bool, optional
             Assertion flag.
         negation : bool, optional
@@ -104,7 +106,7 @@ class Formula:
         Parameters
         ----------
         k : int, optional
-            Order.
+            Iteration number.
         assertion : bool, optional
             Assertion flag.
         negation : bool, optional
@@ -271,7 +273,6 @@ class Formula:
             operator = stack_operator.pop()[0]
             return StateFormula(operands, operator)
         else:
-            operands, operator = None, None
             return stack_operands.pop()[0]
 
 
@@ -286,12 +287,12 @@ class Formula:
         Returns
         -------
         str
-            "TRUE" or "FALSE".
+            "REACHABLE", "NOT REACHABLE" or "UNKNOWN".
         """
         if verdict == Verdict.REACHABLE:
-            return "TRUE"
+            return "REACHABLE"
         elif verdict == Verdict.NOT_REACHABLE:
-            return "FALSE"
+            return "NOT REACHABLE"
 
         return "UNKNOWN"
 
@@ -316,13 +317,13 @@ class SimpleExpression(ABC):
         pass
 
     @abstractmethod
-    def smtlib(self, k: int = None) -> str:
+    def smtlib(self, k: Optional[int] = None) -> str:
         """ Assert the SimpleExpression.
 
         Parameters
         ----------
         k : int, optional
-            Order.
+            Iteration number.
 
         Returns
         -------
@@ -332,13 +333,13 @@ class SimpleExpression(ABC):
         pass
 
     @abstractmethod
-    def smtlib_sat(self, k: int = None) -> str:
+    def smtlib_sat(self, k: Optional[int] = None) -> str:
         """ Assert the SimpleExpression.
 
         Parameters
         ----------
         k : int, optional
-            Order.
+            Iteration number.
 
         Returns
         -------
@@ -356,13 +357,13 @@ class Expression(SimpleExpression):
     """
 
     @abstractmethod
-    def smtlib(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         """ Assert the Expression.
 
         Parameters
         ----------
         k : int, optional
-            Order.
+            Iteration number.
         assertion : bool
             Assertion flag.
         negation : bool
@@ -376,13 +377,13 @@ class Expression(SimpleExpression):
         pass
 
     @abstractmethod
-    def smtlib_sat(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib_sat(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         """ Assert the Expression.
 
         Parameters
         ----------
         k : int, optional
-            Order.
+            Iteration number.
         assertion : bool
             Assertion flag.
         negation : bool
@@ -441,7 +442,7 @@ class StateFormula(Expression):
 
         return text
 
-    def smtlib(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         smt_input = ' '.join(map(lambda operand: operand.smtlib(k), self.operands))
 
         if len(self.operands) > 1 or self.operator == 'not':
@@ -455,7 +456,7 @@ class StateFormula(Expression):
 
         return smt_input
 
-    def smtlib_sat(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib_sat(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         smt_input = ' '.join(map(lambda operand: operand.smtlib_sat(k), self.operands))
 
         if len(self.operands) > 1 or self.operator == 'not':
@@ -511,7 +512,7 @@ class Atom(Expression):
     def __str__(self) -> str:
         return "({} {} {})".format(self.left_operand, self.operator, self.right_operand)
 
-    def smtlib(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         smt_input = "({} {} {})".format(self.operator, self.left_operand.smtlib(k), self.right_operand.smtlib(k))
 
         if negation:
@@ -522,7 +523,7 @@ class Atom(Expression):
 
         return smt_input
 
-    def smtlib_sat(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib_sat(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         assert self.operator in ['=', 'distinct']
         smt_input = "({} {} {})".format(self.operator, self.left_operand.smtlib_sat(k), self.right_operand.smtlib_sat(k))
 
@@ -557,7 +558,7 @@ class BooleanConstant(Expression):
     def __str__(self) -> str:
         return str(self.value)
 
-    def smtlib(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         smt_input = str(self).lower()
 
         if negation:
@@ -568,7 +569,7 @@ class BooleanConstant(Expression):
 
         return smt_input
 
-    def smtlib_sat(self, k: int = None, assertion: bool = False, negation: bool = False) -> str:
+    def smtlib_sat(self, k: Optional[int] = None, assertion: bool = False, negation: bool = False) -> str:
         return self.smtlib(k=k, assertion=assertion, negation=negation)
 
 
@@ -611,10 +612,10 @@ class TokenCount(SimpleExpression):
 
         return text
 
-    def smtlib(self, k: int = None) -> str:
+    def smtlib(self, k: Optional[int] = None) -> str:
         def place_smtlib(pl, k):
-            pl_order = pl if k is None else "{}@{}".format(pl, k)
-            return pl_order if self.multipliers is None or pl not in self.multipliers else "(* {} {})".format(pl_order, self.multipliers[pl])
+            pl_iteration = pl if k is None else "{}@{}".format(pl, k)
+            return pl_iteration if self.multipliers is None or pl not in self.multipliers else "(* {} {})".format(pl_iteration, self.multipliers[pl])
 
         smt_input = ' '.join(map(lambda pl: place_smtlib(pl, k), self.places))
 
@@ -626,7 +627,7 @@ class TokenCount(SimpleExpression):
 
         return smt_input
 
-    def smtlib_sat(self, k: int = None) -> str:
+    def smtlib_sat(self, k: Optional[int] = None) -> str:
         assert not self.integer_constant
         assert not self.multipliers
         smt_input = ' '.join(map(lambda pl: pl if k is None else "{}@{}".format(pl, k), self.places))
@@ -658,10 +659,10 @@ class IntegerConstant(SimpleExpression):
     def __str__(self) -> str:
         return str(self.value)
 
-    def smtlib(self, k: int = None) -> str:
+    def smtlib(self, k: Optional[int] = None) -> str:
         return str(self)
 
-    def smtlib_sat(self, k: int = None) -> str:
+    def smtlib_sat(self, k: Optional[int] = None) -> str:
         assert self.value in [0, 1]
         if self.value:
             return "true"

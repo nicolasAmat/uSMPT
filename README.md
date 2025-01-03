@@ -1,6 +1,6 @@
 # µSMPT - *An SMT-based Model Checking Project*
 
-The goal of this project is to showcase the application of SMT (Satisfiability Modulo Theories) methods in system verification by developing a Petri net model checker that solves the reachability problem. As a developer, you will have the opportunity to participate in the reachability category of the [Model Checking Contest](https://mcc.lip6.fr/2023/), an international competition for model checking tools, and put your skills to the test.
+The goal of this project is to showcase the application of SMT-based (Satisfiability Modulo Theories) methods in system verification by developing a Petri net model checker that solves the reachability problem. As a developer, you will have the opportunity to participate in the reachability category of the [Model Checking Contest](https://mcc.lip6.fr/2023/), an international competition for model checking tools, and put your skills to the test.
 
 ## 1 - Theoretical Background
 
@@ -14,7 +14,7 @@ Model Checking is composed of three main elements to perform verification:
 
 + *A property specification language*, that is a formalism to describe the properties. Different temporal logics can be used, such as LTL (Linear Temporal Logic) or CTL (Computation Tree Logic).
 + *A behavioral specification language*, that is a formalism to describe the system and its behavior. A model-checker can work with different formalisms, such as networks of automata, process calculi, Petri net, and many others.
-+ *A verification technique*, that is a method to prove that the system satisfies the given properties or return a counter-example if it is not the case. Besides "traditional" enumerative or automata-based techniques, two main approaches can be found: a first one based on the use of decision diagrams (such as Binary Decision Diagrams); and a second one based on an encoding into a SAT problem.
++ *A verification technique*, that is a method to prove that the system satisfies the given properties or return a counter-example if it is not the case. Besides "traditional" enumerative or automata-based techniques, two main approaches can be found: a first one based on the use of decision diagrams (such as Binary Decision Diagrams); and a second one based on an encoding into a SAT (or SMT) problem.
 
 ### 1.2 - Petri Nets
 
@@ -130,12 +130,12 @@ usmpt/
 
     ptio/
         ptnet.py            # Petri net module                                (*)
-        formula.py          # Formula module                                  (*)
+        formula.py          # Formula module
         verdict.py          # Verdict module
         
     checkers/
         abstractchecker.py  # abstract class of model checking methods
-        bmc.py              # template for the Bounded Model Checking method  (*)
+        bmc.py              # template for the Bounded Model Checking method
         induction.py        # template for the inductive method               (*)
         kinduction.py       # template for the k-induction method             (*)
         stateequation.py    # template for the state-equation method          (*)
@@ -151,9 +151,16 @@ usmpt/
 
 During the project you can use any SAT/SMT solver. However, `usmpt` already provides an interface with the [z3 solver](https://github.com/Z3Prover/z3), using the SMT-LIB format. You will find documentation at the end of this file in Appendix.
 
+During the project, do not hesitate to use the `-verbose` and `--debug` options extensively, which output some information about the execution and the SMT-LIB exchanged with the solver (including what is returned by the solver).
+
+Finally, to automatically install the Tina toolbox and the z3 solver, run the `install.sh` script, followed by `source ~/.bashrc` to update the `PATH` environment variable.
+
+
 ## 2.2 - Defining Predicates
 
 We start by defining a few formulas (on paper first) that ease the subsequent expression of model checking procedures. This will help you with the most delicate point of our encoding, which relies on how to encode sequences of transitions.
+
+Since places can contain an a arbitrary number of tokens, our encoding will rely on the Linear Integer Arithmetic (LIA) theory, i.e., variables are nonnegative integers (in $\mathbb{N}$). However, if we know (as a pre-condition) that a net is safe, it may be more efficient to rely on a Boolean encoding (and thus use a pure SAT solver). This part, is kept as an extension (see Sect. 2.3.5). Note that in the `nets/` folder, safe nets are always named `safe_net.net` and otherwise `net.net`.
 
 In the following, we use $\vec{x}$ for the vector of variables $(x_1, \dots, x_n)$, corresponding to the places $p_1, \dots, p_n$ of $P$, and $F(\vec{x})$ for a formula whose variables are included in $\vec{x}$. We say that a mapping[^1] $m$ of $\mathbb{N}^{P}$ is a model of $F$, denoted $m \models F$, if the ground formula $F(m) = F(m(p_1), \dots, m(p_n))$ is true. Hence, we can also interpret $F$ as a predicate over markings.
 
@@ -179,9 +186,11 @@ For the following question, you can define another helper predicate, $\Delta_t(\
 >Define a predicate $\mathrm{T}(\vec{x}, \vec{x}')$ that describes the relation between the markings before $(\vec{x})$ and after $(\vec{x'})$ firing a transition. With this convention, formula $\mathrm{T}(\vec{x}, \vec{x}')$ holds if and only if $x \xrightarrow{t} x'$ holds for some transition $t$.
 </td></tr></table>
 
+In this project, these predicates are generated using the SMT-LIB format, see the appendix for more details.
+
 ## 2.3 - Implementing SMT-based model checking methods
 
-Our next step is to implement some model checking methods that will make use of the predicate $\mathrm{T}(\vec{x}, \vec{x}')$. To define multiple vectors of variables, namely $\vec{x^0}, \vec{x^1}, \vec{x^2}$, we suggest using `@k` as a suffix for each place identifier. It is important to note that the `k` parameter is already an argument of the different `smtlib` methods.
+Our next step is to implement some model checking methods that will make use of the predicate $\mathrm{T}(\vec{x}, \vec{x}')$. To define multiple vectors of variables, namely $\vec{x^0}, \vec{x^1}, \vec{x^2}$, we suggest using `@k` as a suffix for each place identifier. For example, variables in the vector $\vec{x}^1 \triangleq (x_0^1, \dots, x_n^1)$ will be named as `x0@1, ..., xn@1`. It is important to note that the parameter `k` is already an argument of the various `smtlib` methods of the codebase (see for example the `smtlib_declare_places(self, k: Optional[int] = None) -> str` method in `usmpt/ptio/ptnet.py`, which declares a new non-negative integer variable for each place, indexed by $k$).
 
 ### 2.3.1 - Bounded Model Checking (BMC)
 
@@ -192,14 +201,6 @@ In BMC, we try to find a reachable marking $m$ that is a model for a given formu
 The BMC method is not complete since it is not possible, in general, to bound the number of iterations needed to give an answer. Also, when the net is unbounded, we may very well have an infinite sequence of formulas $\phi_0 \subsetneq \phi_1 \subsetneq \dots$ However, in practice, this method can be very efficient to find a witness when it exists.
 
 The crux of the method is to compute formulas $\phi_i$ that represents the set of markings reachable using firing sequences of length at most $i$. Your goal is to build such formulas incrementally.
-
-<table><tr><td style="vertical-align: middle;">❓</td>
-<td>
-
-> Implement the `prove_helper(self) -> int` method of the `BMC` class that returns the iteration index if a witness is found.
-</td></tr></table>
-
-Note that to run BMC you must select it using `--methods BMC`.
 
 We give, below, a brief pseudocode description of the algorithm.
 
@@ -213,8 +214,26 @@ while unsat(phi /\ F(x)) {
     x <- x'
 }
 
-return T
+return True
 ```
+
+The BMC method is already implemented in the `prove_helper(self) -> int` method of the `BMC` class (see, `usmpt/checkers/bmc.py`). This method returns the iteration index if a witness is found, otherwise it does not terminate.
+
+This implementation relies on three methods of the `PetriNet class` (see, `usmpt/ptio/ptnet.py`):
+`smtlib_declare_places`, `smtlib_set_initial_marking` and `smtlib_transition_relation`.
+
+To run BMC you must select it using `--methods BMC`.
+
+<table><tr><td style="vertical-align: middle;">❓</td>
+<td>
+
+> Implement the methods `smtlib_set_initial_marking` and `smtlib_transition_relation`, which return an SMT-LIB encoding (`str`) of the predicates $\underline{m_0}(\vec{x^k})$ and $\mathrm{T}(\vec{x}^k, \vec{x}^{k+1})$ respectively.
+
+> **Tip:** Read the methods `__str__` and `smtlib_declare_places` carefully to understand the data-structure of a Petri net. The attributes `self.places` and `self.transitions` are the sets of identifiers of the places and transitions respectively. The pre- and post-conditions are stored as two nested dictionaries (`self.pre` and `self.post`). For example, if `self.pre[t][p]` is defined, its value corresponds to the weight of the arc from $p$ to $t$, otherwise `p` is not a valid key of `self.pre[t]` and no such arc exists. Note that in Python you can use `self.pre[t].get(p, 0)` to get `self.pre[t][p]` if `p` is a valid key and `0` otherwise.
+
+> **Testing:** `python3 -n nets/BMC/safe_net.net -ff nets/BMC/reachable.formula --methods BMC` must return `REACHABLE` and `python3 -n nets/INDUCTION/safe_net.net -ff nets/INDUCTION/not_reachable.formula --methods BMC` must not terminate (use CTRL-C to stop the execution). Write other tests to check your implementation.
+</td></tr></table>
+
 
 ### 2.3.2 - Induction
 
@@ -227,36 +246,73 @@ To prove that property $F$ is not reachable (no reachable state satisfies $F$), 
 
 Note that checking condition (2) is equivalent to proving that $\left ( \neg F(\vec{x}) \land T(\vec{x}, \vec{x}') \right) \Rightarrow \neg F(\vec{x}')$ is a tautology.
 
+Note that to run Induction you must select it using `--methods INDUCTION`.
+
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
 > Implement the `prove_helper(self) -> Optional[bool]` method of the `Induction` class that returns `True` if constraint (1) is *SAT* (i.e. the initial marking is a model of $F$); returns `False` if both constraints (1) and (2) are *UNSAT* (i.e. $\neg F$ is an invariant); and returns `None` otherwise.
+
+> **Tip:** Read the BMC implementation in `usmpt/checkers/bmc.py` carefully.
+
+> **Testing:** `python3 -n nets/INDUCTION/net.net -ff nets/INDUCTION/not_reachable.formula --methods INDUCTION` must return `NOT REACHABLE` and `python3 -n nets/KINDUCTION/net.net -ff nets/KINDUCTION/not_reachable.formula --methods INDUCTION` must terminate without computing a verdict (`UNKNOWN`).
 </td></tr></table>
 
 ### 2.3.3 - K-Induction
 
 K-Induction is an extension of the BMC and Induction methods, that can also prove that a formula is not reachable [[Sheeran et al., 2000]](https://www.di.ens.fr/~pouzet/cours/mpri/bib/sheeran-FMCAD00.pdf). Sometimes, $\neg F$ may not be inductive by unrolling only one transition (and so the Induction method will return `None`).
 
+For example, $F \triangleq (q \neq 0)$ is clearly not reachable in the (dead) net depicted below (and so $\neg F = (q = 0)$ is an invariant). Yet, condition 2. of the induction does not hold: $(p = 1 \land q = 0) \xrightarrow{t} (p' = 0 ∧ q' = 1)$. However, by considering sequences of $k$ transitions, this invariant can be shown to hold: $\models \forall \vec{p}, \vec{p}', \vec{p}''. \, F(\vec{p}) \land \mathrm{T}(\vec{p}, \vec{p}′) \land \neg F(\vec{p}') \land \mathrm{T}(\vec{p}, \vec{p}'') \Rightarrow \neg F(\vec{p}'')$. In this case, we say that property $F$ is 2-inductive.
+
+<br />
+<p align="center">
+  <a>
+    <img src="pics/net_k-induction.png" alt="Logo" width="278" height="111">
+  </a>
+</p>
+
 The algorithm starts by computing a formula $\psi_0(\vec{x_0}, \vec{x_1}) \triangleq \neg F(\vec{x_0}) \land T(\vec{x_0}, \vec{x_1})$, and check whether $\psi_0(\vec{x_0}, \vec{x_1}) \land F(\vec{x_1})$ is *UNSAT* or not. If it is *UNSAT*, we must ensure that the first iteration (i = 0) of BMC does not find a witness. If not, we proved that $\neg F$ is an invariant with exactly the same queries as the induction method. In the other case, if $\psi_0(\vec{x_0}, \vec{x_1}) \land F(\vec{x_1})$ is *SAT*, we continue by unrolling the transitions and computing a formula $\psi_1$ representing the states reachable by firing two transitions consecutively from $\neg F$ as : $\psi_1(\vec{x_0}, \vec{x_1}, \vec{x_2}) \triangleq \psi_0(\vec{x_0}, \vec{x_1}) \land \neg F(\vec{x_1}) \land T(\vec{x_1}, \vec{x_2})$ and check whether $\psi_1 \land F(\vec{x_2})$ is *UNSAT* or not.
 
 The interconnection between `BMC` and `KInduction` is already implemented in `usmpt` through the attribute `induction_queue`. The `prove_helper` method of `BMC` must manage the result of `KInduction` if there is one.
+
+Note that to run Induction you must select it using `--methods KINDUCTION`.
 
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
 > Implement the `def prove_helper(self) -> int` of the `KInduction` class, that iteratively constructs the $\psi_i$ formulas and returns $i$ if $\psi_i \land F$ is *UNSAT*.
+
+> **Testing:** `python3 -n nets/K-INDUCTION/net.net -ff nets/K-INDUCTION/not_reachable.formula --methods K-INDUCTION` must return `NOT REACHABLE`.
 </td></tr></table>
 
 ### 2.3.4 - State Equation Over-Approximation
 
-We know propose a method specific to Petri nets. This method relies on the *potentially reachable markings*, that are the solutions of $m$ for the system $I \cdot \vec{z} + m_0 = m$, where $\vec{z}$ is a vector of non-negative variables and $I$ is the incidence matrix. The incidence matrix $I$ of a net $N$ is the integer matrix of dimension $|P| \times |T|$ (place-transition) with components $I(p, t) = \mathrm{Post}(t, p) − \mathrm{Pre}(t, p)$, for each place $p$ and each transition $t$. This method (as the previous ones) is still non-complete, but it can help us prove, in some cases, that a formula $F$ is not reachable.
+We know propose a method specific to Petri nets. This method relies on the *potentially reachable markings* (an over-approximation of the reachable markings), that are the solutions of $m$ for the system $I \cdot \vec{z} + m_0 = m$, where $\vec{z}$ is a vector of non-negative variables and $I$ is the incidence matrix. The incidence matrix $I$ of a net $N$ is the integer matrix of dimension $|P| \times |T|$ (place-transition) with components $I(p, t) = \mathrm{Post}(t, p) − \mathrm{Pre}(t, p)$, for each place $p$ and each transition $t$. This method (as the previous ones) is still non-complete, but it can help us prove, in some cases, that a formula $F$ is not reachable.
 
 This part is left as an open problem, and do not rely on the previous encoding.
 
 <table><tr><td style="vertical-align: middle;">❓</td>
 <td>
 
-> Your goal is to implement the `prove_helper(self) -> Optional[bool]` method of the `StateEquation` class, that returns `False` is the formula has been proved as non-reachable, `None` otherwise.
+> Implement the `prove_helper(self) -> Optional[bool]` method of the `StateEquation` class, that returns `False` is the formula has been proved as non-reachable, `None` otherwise.
+
+> **Hint:** In the `PetriNet` class (`usmpt/ptio/ptnet.py`) you may need to write additional `smtlib` methods.
+
+> **Testing:** Find a net and two (not reachable) formulas, such that the state equation permits to conclude for the first, but not for the second.
+</td></tr></table>
+
+### 2.3.5 - SAT encoding for safe nets
+
+As mentioned earlier, if we know, as a pre-condition, that a net is safe, it may be more efficient to rely on a Boolean encoding (and thus use a pure SAT solver). 
+
+<table><tr><td style="vertical-align: middle;">❓</td>
+<td>
+
+> Write an alternative version of the methods `smtlib_declare_places`, `smtlib_set_initial_marking` and `smtlib_transition_relation` to support a SAT encoding for the specific case of safe nets.
+
+> **Hint:** Replace occurrences of `formula.smtlib` with `formula.smtlib_sat` (see the definition of `smtlib_sat` in `usmpt/ptio/formula.py` on line 103).
+
+> **Testing:** Tests must still work if they are based on `safe_net.net`, otherwise they must be rewritten. 
 </td></tr></table>
 
 ---
