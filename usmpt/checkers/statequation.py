@@ -100,6 +100,8 @@ class StateEquation(AbstractChecker):
         # Put the result in the queue
         if verdict is False:
             result.put(Verdict.NOT_REACHABLE)
+        else:
+            result.put(Verdict.UNKNOWN)
 
         # Terminate concurrent methods
         if verdict is False and not concurrent_pids.empty():
