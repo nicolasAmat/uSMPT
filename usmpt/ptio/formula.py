@@ -52,7 +52,7 @@ class Formula:
         Reachability formula.
     """
 
-    def __init__(self, formula: Optional[str], path_formula: Optional[str] = None) -> None:
+    def __init__(self, formula: Optional[str] = None, path_formula: Optional[str] = None) -> None:
         """ Initializer.
 
         Parameters

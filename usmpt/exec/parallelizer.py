@@ -81,6 +81,8 @@ class Parallelizer:
         
         # Methods to run
         self.methods: list[str] = methods
+        if 'K-INDUCTION' in methods and 'BMC' not in methods:
+            self.methods.append("BMC")
 
         # Process information
         self.processes: list[Process] = []
