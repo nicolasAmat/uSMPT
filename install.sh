@@ -16,4 +16,4 @@ wget https://projects.laas.fr/tina/binaries/tina-3.8.5-amd64-linux.tgz
 tar xvf tina-3.8.5-amd64-linux.tgz
 rm tina-3.8.5-amd64-linux.tgz
 
-echo "export PATH=$SCRIPT_DIR/z3-4.13.4-x64-glibc-2.35.zip/bin:$SCRIPT_DIR/tina-3.8.5/bin:\$PATH" >> ~/.bashrc
+echo "export PATH=$SCRIPT_DIR/z3-4.13.4-x64-glibc-2.35/bin:$SCRIPT_DIR/tina-3.8.5/bin:\$PATH" >> ~/.bashrc
