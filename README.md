@@ -253,7 +253,7 @@ Note that to run Induction you must select it using `--methods INDUCTION`.
 
 > **Task:** Implement the `prove_helper(self) -> Optional[bool]` method of the `Induction` class that returns `True` if constraint (1) is *SAT* (i.e. the initial marking is a model of $F$); returns `False` if both constraints (1) and (2) are *UNSAT* (i.e. $\neg F$ is an invariant); and returns `None` otherwise.
 
-> **Tip:** Read the BMC implementation in `usmpt/checkers/bmc.py` carefully.
+> **Tip:** Read the BMC implementation in `usmpt/checkers/bmc.py` carefully. Note that `self.formula.smtlib(k, assertion=True, negation=True)` return the SMT-LIB code for asserting $\neg F(\vec{x}^k)$.
 
 > **Testing:** `python3 -n nets/INDUCTION/net.net -ff nets/INDUCTION/not_reachable.formula --methods INDUCTION` must return `NOT REACHABLE` and `python3 -n nets/K-INDUCTION/net.net -ff nets/K-INDUCTION/not_reachable.formula --methods INDUCTION` must terminate without computing a verdict (`UNKNOWN`).
 </td></tr></table>
@@ -337,9 +337,9 @@ An example of Boolean declarations and SAT assertions:
 
 ```
 ; Variable declarations
-(declare-fun a () Bool)
-(declare-fun b () Bool)
-(declare-fun c () Bool)
+(declare-const a Bool)
+(declare-const b Bool)
+(declare-const c Bool)
 
 ; Constraints
 (assert (or a b))
@@ -353,16 +353,15 @@ An example of Integer declarations and QF-LIA assertions:
 
 ```
 ; Variable declarations
-(declare-fun a () Int)
-(declare-fun b () Int)
-(declare-fun c () Int)
+(declare-const a Int)
+(declare-const b Int)
+(declare-const c Int)
 
 ; Constraints
 (assert (> a 0))
 (assert (> b 0))
 (assert (> c 0))
-(assert (= (+ a b) (* 2 c)))
-(assert (distinct a c))
+(assert (and (= (+ a b) (* 2 c)) (distinct a c)))
 
 ; Solve
 (check-sat)
