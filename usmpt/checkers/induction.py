@@ -98,7 +98,7 @@ class Induction(AbstractChecker):
         Returns
         -------
         bool, optional
-            `True` if the formula is inductive, `None` otherwise.
+            `True` if the formula is reachable, `False` if not reachable and `None` otherwise.
         """
         raise NotImplementedError
     ######################

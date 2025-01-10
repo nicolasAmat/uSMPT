@@ -255,7 +255,7 @@ Note that to run Induction you must select it using `--methods INDUCTION`.
 
 > **Tip:** Read the BMC implementation in `usmpt/checkers/bmc.py` carefully. Note that `self.formula.smtlib(k, assertion=True, negation=True)` return the SMT-LIB code for asserting $\neg F(\vec{x}^k)$.
 
-> **Testing:** `python3 -n nets/INDUCTION/net.net -ff nets/INDUCTION/not_reachable.formula --methods INDUCTION` must return `NOT REACHABLE` and `python3 -n nets/K-INDUCTION/net.net -ff nets/K-INDUCTION/not_reachable.formula --methods INDUCTION` must terminate without computing a verdict (`UNKNOWN`).
+> **Testing:** `python3 -n nets/INDUCTION/safe_net.net -ff nets/INDUCTION/not_reachable.formula --methods INDUCTION` must return `NOT REACHABLE` and `python3 -n nets/K-INDUCTION/safe_net.net -ff nets/K-INDUCTION/not_reachable.formula --methods INDUCTION` must terminate without computing a verdict (`UNKNOWN`).
 </td></tr></table>
 
 ### 2.3.3 - K-Induction
@@ -282,7 +282,7 @@ Note that to run Induction you must select it using `--methods K-INDUCTION`.
 
 > **Task:** Implement the `def prove_helper(self) -> int` of the `KInduction` class, that iteratively constructs the $\psi_i$ formulas and returns $i$ if $\psi_i \land F$ is *UNSAT*.
 
-> **Testing:** `python3 -n nets/K-INDUCTION/net.net -ff nets/K-INDUCTION/not_reachable.formula --methods K-INDUCTION` must return `NOT REACHABLE`.
+> **Testing:** `python3 -n nets/K-INDUCTION/safe_net.net -ff nets/K-INDUCTION/not_reachable.formula --methods K-INDUCTION` must return `NOT REACHABLE`.
 </td></tr></table>
 
 ### 2.3.4 - State Equation Over-Approximation
